@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FinanceTracker - Приложение за управление на личните разходи">
+    <meta name="theme-color" content="#3498db">
+    <title>FinanceTracker - Управление на разходи</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Главно заглавие на приложението -->
+    <header class="page-header">
+        <div class="header-container">
+            <h1 class="app-title">FinanceTracker</h1>
+            <p class="app-subtitle">Управление на вашите разходи</p>
+        </div>
+    </header>
+
+    <!-- Основно съдържание -->
+    <main class="main-content">
+        <div class="content-wrapper">
+            <!-- Секция с форма за добавяне на разход -->
+            <section class="form-card">
+                <h2 class="section-title">Добавете нов разход</h2>
+                
+                <form id="expenseForm" class="expense-input-form">
+                    <fieldset class="form-fieldset">
+                        <legend class="visually-hidden">Формуляр за нов разход</legend>
+                        
+                        <div class="form-field-group">
+                            <label for="categoryInput" class="form-label">Категория</label>
+                            <input 
+                                type="text" 
+                                id="categoryInput" 
+                                class="form-input form-input--text" 
+                                placeholder="Напр. храна, транспорт, развлечения"
+                                aria-label="Категория на разхода"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-field-group">
+                            <label for="amountInput" class="form-label">Сума (лв)</label>
+                            <input 
+                                type="number" 
+                                id="amountInput" 
+                                class="form-input form-input--number" 
+                                placeholder="0.00"
+                                aria-label="Сума на разхода"
+                                min="0.01"
+                                step="0.01"
+                                required
+                            >
+                        </div>
+
+                        <button type="submit" class="button button--primary">
+                            ➕ Добавить разход
+                        </button>
+                    </fieldset>
+                </form>
+            </section>
+
+            <!-- Секция със списък на разходите -->
+            <section class="expenses-card">
+                <h2 class="section-title">Ваши разходи</h2>
+                
+                <div class="expenses-container">
+                    <ul id="expenseList" class="expenses-list" role="list">
+                        <!-- Разходите ще се добавят динамично -->
+                    </ul>
+                </div>
+                
+                <div id="emptyState" class="empty-state" role="status" aria-live="polite">
+                    <p class="empty-state-message">Няма добавени разходи. Начнете с добавяне на първи разход.</p>
+                </div>
+            </section>
+
+            <!-- Статистическа секция -->
+            <section class="statistics-card" role="region" aria-label="Статистика на разходите">
+                <h2 class="section-title">📊 Статистика</h2>
+                
+                <div class="statistics-grid">
+                    <div class="statistic-item">
+                        <h3 class="statistic-title">Общо разходи</h3>
+                        <p id="statisticsTotal" class="statistic-value">0.00 лв</p>
+                        <p class="statistic-description">Сума на всички разходи</p>
+                    </div>
+                    
+                    <div class="statistic-item">
+                        <h3 class="statistic-title">Брой разходи</h3>
+                        <p id="statisticsCount" class="statistic-value">0</p>
+                        <p class="statistic-description">Общ брой записи</p>
+                    </div>
+                    
+                    <div class="statistic-item">
+                        <h3 class="statistic-title">Най-висок разход</h3>
+                        <p id="statisticsHighest" class="statistic-value">0.00 лв</p>
+                        <p class="statistic-description">Максимална сума</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Секция с общо количество -->
+            <aside class="summary-card" role="complementary" aria-label="Резюме на разходите">
+                <h2 class="section-title">Резюме</h2>
+                
+                <div class="summary-content">
+                    <div class="summary-item">
+                        <span class="summary-label">Общо разходи:</span>
+                        <span id="totalAmount" class="summary-value">0.00 лв</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span class="summary-label">Брой разходи:</span>
+                        <span id="totalCount" class="summary-value">0</span>
+                    </div>
+                    
+                    <div class="summary-item">
+                        <span class="summary-label">Среден разход:</span>
+                        <span id="averageAmount" class="summary-value">0.00 лв</span>
+                    </div>
+                </div>
+                
+                <button id="clearAllButton" class="button button--secondary">
+                    🗑️ Изтрий всички
+                </button>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Футър -->
+    <footer class="page-footer">
+        <p class="footer-text">&copy; 2026 FinanceTracker. Управлявайте вашите разходи умно.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
