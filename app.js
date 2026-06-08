@@ -10,6 +10,7 @@ const statisticsTotal = document.getElementById("statisticsTotal");
 const statisticsCount = document.getElementById("statisticsCount");
 const statisticsHighest = document.getElementById("statisticsHighest");
 const clearAllButton = document.getElementById("clearAllButton");
+const formError = document.getElementById("formError");
 
 let expenses = [];
 
@@ -29,6 +30,43 @@ function computeSummary() {
         average,
         highest,
     };
+}
+
+function showError(message) {
+    if (!formError) return;
+    formError.textContent = message;
+    formError.style.display = "block";
+}
+
+function clearError() {
+    if (!formError) return;
+    formError.textContent = "";
+    formError.style.display = "none";
+}
+
+function validateExpense(category, amount) {
+    const normalizedCategory = category.trim();
+    const amountText = amount.trim();
+
+    if (normalizedCategory === "") {
+        return "Моля въведете име или категория на разхода.";
+    }
+
+    if (amountText === "") {
+        return "Моля въведете сума.";
+    }
+
+    const normalizedAmount = Number(amountText);
+
+    if (Number.isNaN(normalizedAmount)) {
+        return "Моля въведете валидно число за сумата.";
+    }
+
+    if (normalizedAmount <= 0) {
+        return "Сумата трябва да бъде по-голяма от 0.";
+    }
+
+    return "";
 }
 
 function renderExpenseList() {
@@ -68,16 +106,22 @@ function updateTotals() {
 }
 
 function addExpense(category, amount) {
+    const validationMessage = validateExpense(category, amount);
+
+    if (validationMessage) {
+        showError(validationMessage);
+        return false;
+    }
+
+    clearError();
+
     const normalizedCategory = category.trim();
     const normalizedAmount = Number(amount);
-
-    if (normalizedCategory === "" || Number.isNaN(normalizedAmount) || normalizedAmount <= 0) {
-        return;
-    }
 
     expenses.push({ category: normalizedCategory, amount: normalizedAmount });
     renderExpenseList();
     updateTotals();
+    return true;
 }
 
 function clearAllExpenses() {
@@ -89,7 +133,12 @@ function clearAllExpenses() {
 expenseForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    addExpense(categoryInput.value, amountInput.value);
+    const added = addExpense(categoryInput.value, amountInput.value);
+
+    if (!added) {
+        return;
+    }
+
     categoryInput.value = "";
     amountInput.value = "";
     categoryInput.focus();
