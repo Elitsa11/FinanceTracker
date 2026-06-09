@@ -6,6 +6,9 @@ const emptyState = document.getElementById("emptyState");
 const totalAmountEl = document.getElementById("totalAmount");
 const totalCountEl = document.getElementById("totalCount");
 const averageAmountEl = document.getElementById("averageAmount");
+const overallIncomeEl = document.getElementById("overallIncome");
+const overallExpensesEl = document.getElementById("overallExpenses");
+const balanceAmountEl = document.getElementById("balanceAmount");
 const statisticsTotal = document.getElementById("statisticsTotal");
 const statisticsCount = document.getElementById("statisticsCount");
 const statisticsHighest = document.getElementById("statisticsHighest");
@@ -15,6 +18,41 @@ const submitButton = expenseForm.querySelector("button[type='submit']");
 
 let expenses = [];
 let editingIndex = -1;
+
+function loadExpenses() {
+    const rawExpenses = localStorage.getItem("financeTrackerExpenses");
+    if (!rawExpenses) {
+        return [];
+    }
+
+    try {
+        return JSON.parse(rawExpenses);
+    } catch {
+        return [];
+    }
+}
+
+function saveExpenses() {
+    localStorage.setItem("financeTrackerExpenses", JSON.stringify(expenses));
+}
+
+function getStoredIncomes() {
+    const rawIncomes = localStorage.getItem("financeTrackerIncomes");
+    if (!rawIncomes) {
+        return [];
+    }
+
+    try {
+        return JSON.parse(rawIncomes);
+    } catch {
+        return [];
+    }
+}
+
+function computeStoredIncomeTotal() {
+    const incomes = getStoredIncomes();
+    return incomes.reduce((sum, income) => sum + Number(income.amount || 0), 0);
+}
 
 function formatCurrency(value) {
     return value.toFixed(2) + " лв";
@@ -145,6 +183,7 @@ function resetEditState() {
 
 function removeExpense(index) {
     expenses.splice(index, 1);
+    saveExpenses();
     renderExpenseList();
     updateTotals();
 }
@@ -176,10 +215,15 @@ function updateExpense(index, category, amount) {
 
 function updateTotals() {
     const { total, count, average, highest } = computeSummary();
+    const incomeTotal = computeStoredIncomeTotal();
+    const balance = incomeTotal - total;
 
     totalAmountEl.textContent = formatCurrency(total);
     totalCountEl.textContent = count.toString();
     averageAmountEl.textContent = formatCurrency(average);
+    overallIncomeEl.textContent = formatCurrency(incomeTotal);
+    overallExpensesEl.textContent = formatCurrency(total);
+    balanceAmountEl.textContent = formatCurrency(balance);
 
     statisticsTotal.textContent = formatCurrency(total);
     statisticsCount.textContent = count.toString();
@@ -200,6 +244,7 @@ function addExpense(category, amount) {
     const normalizedAmount = Number(amount);
 
     expenses.push({ category: normalizedCategory, amount: normalizedAmount });
+    saveExpenses();
     renderExpenseList();
     updateTotals();
     return true;
@@ -207,6 +252,7 @@ function addExpense(category, amount) {
 
 function clearAllExpenses() {
     expenses = [];
+    saveExpenses();
     renderExpenseList();
     updateTotals();
 }
@@ -236,5 +282,6 @@ clearAllButton.addEventListener("click", function () {
     clearAllExpenses();
 });
 
+expenses = loadExpenses();
 renderExpenseList();
 updateTotals();

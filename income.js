@@ -4,10 +4,47 @@ const incomeAmountInput = document.getElementById("incomeAmountInput");
 const incomeList = document.getElementById("incomeList");
 const emptyIncomeState = document.getElementById("emptyIncomeState");
 const totalIncomeAmountEl = document.getElementById("totalIncomeAmount");
+const totalExpensesAmountEl = document.getElementById("totalExpensesAmount");
+const balanceAmountEl = document.getElementById("balanceAmount");
 const totalIncomeCountEl = document.getElementById("totalIncomeCount");
 const incomeFormError = document.getElementById("incomeFormError");
 
 let incomes = [];
+
+function loadIncomes() {
+    const rawIncomes = localStorage.getItem("financeTrackerIncomes");
+    if (!rawIncomes) {
+        return [];
+    }
+
+    try {
+        return JSON.parse(rawIncomes);
+    } catch {
+        return [];
+    }
+}
+
+function saveIncomes() {
+    localStorage.setItem("financeTrackerIncomes", JSON.stringify(incomes));
+}
+
+function getStoredExpenses() {
+    const rawExpenses = localStorage.getItem("financeTrackerExpenses");
+    if (!rawExpenses) {
+        return [];
+    }
+
+    try {
+        return JSON.parse(rawExpenses);
+    } catch {
+        return [];
+    }
+}
+
+function computeStoredExpensesTotal() {
+    const expenses = getStoredExpenses();
+    return expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+}
 
 function formatCurrency(value) {
     return value.toFixed(2) + " лв";
@@ -99,6 +136,7 @@ function renderIncomeList() {
 
 function removeIncome(index) {
     incomes.splice(index, 1);
+    saveIncomes();
     renderIncomeList();
     updateIncomeTotals();
 }
@@ -112,7 +150,12 @@ function computeIncomeSummary() {
 
 function updateIncomeTotals() {
     const { total, count } = computeIncomeSummary();
+    const expenseTotal = computeStoredExpensesTotal();
+    const balance = total - expenseTotal;
+
     totalIncomeAmountEl.textContent = formatCurrency(total);
+    totalExpensesAmountEl.textContent = formatCurrency(expenseTotal);
+    balanceAmountEl.textContent = formatCurrency(balance);
     totalIncomeCountEl.textContent = count.toString();
 }
 
@@ -130,6 +173,7 @@ function addIncome(description, amount) {
     const normalizedAmount = Number(amount);
 
     incomes.push({ description: normalizedDescription, amount: normalizedAmount });
+    saveIncomes();
     renderIncomeList();
     updateIncomeTotals();
     return true;
@@ -148,5 +192,6 @@ incomeForm.addEventListener("submit", function (event) {
     incomeDescriptionInput.focus();
 });
 
+incomes = loadIncomes();
 renderIncomeList();
 updateIncomeTotals();
