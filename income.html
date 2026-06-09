@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FinanceTracker - Приложение за управление на личните приходи">
+    <meta name="theme-color" content="#3498db">
+    <title>FinanceTracker - Управление на приходи</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-container">
+            <h1 class="app-title">FinanceTracker</h1>
+            <p class="app-subtitle">Управление на вашите приходи</p>
+            <nav class="page-nav" aria-label="Основна навигация">
+                <a href="index.html" class="page-nav-link">Expenses</a>
+                <a href="income.html" class="page-nav-link active">Income</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="content-wrapper">
+            <div class="main-column">
+                <section class="form-card">
+                    <h2 class="section-title">Добавете нов приход</h2>
+                    <form id="incomeForm" class="expense-input-form">
+                        <fieldset class="form-fieldset">
+                            <legend class="visually-hidden">Формуляр за нов приход</legend>
+
+                            <div class="form-field-group">
+                                <label for="incomeDescriptionInput" class="form-label">Описание</label>
+                                <input
+                                    type="text"
+                                    id="incomeDescriptionInput"
+                                    class="form-input"
+                                    placeholder="Напр. заплата, продажба, бонус"
+                                    aria-label="Описание на прихода"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field-group">
+                                <label for="incomeAmountInput" class="form-label">Сума (лв)</label>
+                                <input
+                                    type="number"
+                                    id="incomeAmountInput"
+                                    class="form-input form-input--number"
+                                    placeholder="0.00"
+                                    aria-label="Сума на прихода"
+                                    min="0.01"
+                                    step="0.01"
+                                    required
+                                >
+                            </div>
+
+                            <button type="submit" class="button button--primary">
+                                ➕ Добави приход
+                            </button>
+
+                            <p id="incomeFormError" class="form-error" aria-live="assertive"></p>
+                        </fieldset>
+                    </form>
+                </section>
+
+                <section class="expenses-card">
+                    <h2 class="section-title">Ваши приходи</h2>
+
+                    <div class="expenses-container">
+                        <ul id="incomeList" class="expenses-list" role="list">
+                            <!-- Приходите ще се добавят динамично -->
+                        </ul>
+                    </div>
+
+                    <div id="emptyIncomeState" class="empty-state" role="status" aria-live="polite">
+                        <p class="empty-state-message">Няма добавени приходи. Започнете с добавяне на първи приход.</p>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="summary-card" role="complementary" aria-label="Резюме на приходите">
+                <h2 class="section-title">Резюме</h2>
+
+                <div class="summary-content">
+                    <div class="summary-item">
+                        <span class="summary-label">Общо приходи:</span>
+                        <span id="totalIncomeAmount" class="summary-value">0.00 лв</span>
+                    </div>
+
+                    <div class="summary-item">
+                        <span class="summary-label">Брой приходи:</span>
+                        <span id="totalIncomeCount" class="summary-value">0</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <p class="footer-text">&copy; 2026 FinanceTracker. Следете вашите приходи лесно.</p>
+    </footer>
+
+    <script src="income.js"></script>
+</body>
+</html>

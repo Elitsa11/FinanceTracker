@@ -65,6 +65,43 @@ textarea:focus-visible {
     font-size: 1.05rem;
 }
 
+.page-nav {
+    margin: 1.25rem auto 0;
+    display: inline-flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(140, 112, 221, 0.25);
+    background: rgba(255, 255, 255, 0.75);
+    color: #4c3b7b;
+    font-weight: 600;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.page-nav-link:hover,
+.page-nav-link:focus {
+    background-color: #f2efff;
+}
+
+.page-nav-link.active {
+    background-color: #8f6dff;
+    color: #ffffff;
+    border-color: #7a57e0;
+}
+
+.main-column {
+    display: grid;
+    gap: 1.5rem;
+}
+
 .main-content {
     padding: 0 1rem 2rem;
 }
