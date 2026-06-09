@@ -11,8 +11,10 @@ const statisticsCount = document.getElementById("statisticsCount");
 const statisticsHighest = document.getElementById("statisticsHighest");
 const clearAllButton = document.getElementById("clearAllButton");
 const formError = document.getElementById("formError");
+const submitButton = expenseForm.querySelector("button[type='submit']");
 
 let expenses = [];
+let editingIndex = -1;
 
 function formatCurrency(value) {
     return value.toFixed(2) + " лв";
@@ -82,15 +84,89 @@ function renderExpenseList() {
     expenses.forEach((expense, index) => {
         const item = document.createElement("li");
         item.className = "expense-item";
-        item.innerHTML = `
-            <div class="expense-item-content">
-                <span class="expense-category">${expense.category}</span>
-                <span class="expense-amount">${formatCurrency(expense.amount)}</span>
-            </div>
-        `;
+
+        const content = document.createElement("div");
+        content.className = "expense-item-content";
+
+        const category = document.createElement("span");
+        category.className = "expense-category";
+        category.textContent = expense.category;
+
+        const amount = document.createElement("span");
+        amount.className = "expense-amount";
+        amount.textContent = formatCurrency(expense.amount);
+
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.className = "button button--secondary expense-edit-button";
+        editButton.textContent = "Редактирай";
+        editButton.setAttribute("aria-label", `Редактирай разход ${expense.category} ${formatCurrency(expense.amount)}`);
+        editButton.addEventListener("click", () => {
+            setFormToEdit(index);
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "button button--danger expense-delete-button";
+        deleteButton.textContent = "Изтрий";
+        deleteButton.setAttribute("aria-label", `Изтрий разход ${expense.category} ${formatCurrency(expense.amount)}`);
+        deleteButton.addEventListener("click", () => {
+            removeExpense(index);
+        });
+
+        content.appendChild(category);
+        content.appendChild(amount);
+        item.appendChild(content);
+        item.appendChild(editButton);
+        item.appendChild(deleteButton);
 
         expenseList.appendChild(item);
     });
+}
+
+function setFormToEdit(index) {
+    const expense = expenses[index];
+    categoryInput.value = expense.category;
+    amountInput.value = expense.amount;
+    editingIndex = index;
+    submitButton.textContent = "💾 Запази";
+    categoryInput.focus();
+}
+
+function resetEditState() {
+    editingIndex = -1;
+    submitButton.textContent = "➕ Добавить разход";
+}
+
+function removeExpense(index) {
+    expenses.splice(index, 1);
+    renderExpenseList();
+    updateTotals();
+}
+
+function updateExpense(index, category, amount) {
+    const validationMessage = validateExpense(category, amount);
+
+    if (validationMessage) {
+        showError(validationMessage);
+        return false;
+    }
+
+    clearError();
+
+    const normalizedCategory = category.trim();
+    const normalizedAmount = Number(amount);
+
+    expenses[index] = {
+        category: normalizedCategory,
+        amount: normalizedAmount,
+    };
+
+    renderExpenseList();
+    updateTotals();
+    resetEditState();
+
+    return true;
 }
 
 function updateTotals() {
@@ -133,14 +209,21 @@ function clearAllExpenses() {
 expenseForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    const added = addExpense(categoryInput.value, amountInput.value);
+    let success;
 
-    if (!added) {
+    if (editingIndex !== -1) {
+        success = updateExpense(editingIndex, categoryInput.value, amountInput.value);
+    } else {
+        success = addExpense(categoryInput.value, amountInput.value);
+    }
+
+    if (!success) {
         return;
     }
 
     categoryInput.value = "";
     amountInput.value = "";
+    resetEditState();
     categoryInput.focus();
 });
 
