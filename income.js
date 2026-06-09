@@ -1,3 +1,6 @@
+const STORAGE_KEY_INCOMES = "financeTrackerIncomes";
+const STORAGE_KEY_EXPENSES = "financeTrackerExpenses";
+
 const incomeForm = document.getElementById("incomeForm");
 const incomeDescriptionInput = document.getElementById("incomeDescriptionInput");
 const incomeAmountInput = document.getElementById("incomeAmountInput");
@@ -9,48 +12,25 @@ const balanceAmountEl = document.getElementById("balanceAmount");
 const totalIncomeCountEl = document.getElementById("totalIncomeCount");
 const incomeFormError = document.getElementById("incomeFormError");
 
-let incomes = [];
+const state = {
+    incomes: [],
+};
 
-function loadIncomes() {
-    const rawIncomes = localStorage.getItem("financeTrackerIncomes");
-    if (!rawIncomes) {
-        return [];
-    }
-
-    try {
-        return JSON.parse(rawIncomes);
-    } catch {
-        return [];
-    }
+function loadIncomesFromStorage() {
+    state.incomes = loadJsonStorage(STORAGE_KEY_INCOMES);
 }
 
-function saveIncomes() {
-    localStorage.setItem("financeTrackerIncomes", JSON.stringify(incomes));
+function saveIncomesToStorage() {
+    saveJsonStorage(STORAGE_KEY_INCOMES, state.incomes);
 }
 
-function getStoredExpenses() {
-    const rawExpenses = localStorage.getItem("financeTrackerExpenses");
-    if (!rawExpenses) {
-        return [];
-    }
-
-    try {
-        return JSON.parse(rawExpenses);
-    } catch {
-        return [];
-    }
+function computeIncomeMetrics() {
+    const total = state.incomes.reduce((sum, income) => sum + income.amount, 0);
+    const count = state.incomes.length;
+    return { total, count };
 }
 
-function computeStoredExpensesTotal() {
-    const expenses = getStoredExpenses();
-    return expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-}
-
-function formatCurrency(value) {
-    return value.toFixed(2) + " лв";
-}
-
-function showIncomeError(message) {
+function setIncomeError(message) {
     if (!incomeFormError) return;
     incomeFormError.textContent = message;
     incomeFormError.style.display = "block";
@@ -62,95 +42,72 @@ function clearIncomeError() {
     incomeFormError.style.display = "none";
 }
 
-function validateIncome(description, amount) {
-    const normalizedDescription = description.trim();
-    const amountText = amount.trim();
-
-    if (normalizedDescription === "") {
+function validateIncomeEntry(description, amountValue) {
+    const descriptionValue = description.trim();
+    if (descriptionValue === "") {
         return "Моля въведете описание на прихода.";
     }
 
-    if (amountText === "") {
-        return "Моля въведете сума.";
-    }
-
-    const normalizedAmount = Number(amountText);
-
-    if (Number.isNaN(normalizedAmount)) {
+    const parsedAmount = parseAmount(amountValue);
+    if (parsedAmount === null) {
         return "Моля въведете валидно число за сумата.";
     }
 
-    if (normalizedAmount <= 0) {
+    if (parsedAmount <= 0) {
         return "Сумата трябва да бъде по-голяма от 0.";
     }
 
     return "";
 }
 
+function createIncomeListItem(income, index) {
+    const item = document.createElement("li");
+    item.className = "expense-item";
+
+    const content = document.createElement("div");
+    content.className = "expense-item-content";
+    content.append(
+        createTextElement("span", "expense-category", income.description),
+        createTextElement("span", "expense-amount", formatCurrency(income.amount))
+    );
+
+    const buttons = document.createElement("div");
+    buttons.className = "expense-actions";
+    buttons.append(
+        createActionButton(
+            "Изтрий",
+            "button--danger expense-delete-button",
+            `Изтрий приход ${income.description} ${formatCurrency(income.amount)}`,
+            () => removeIncome(index)
+        )
+    );
+
+    item.append(content, buttons);
+    return item;
+}
+
 function renderIncomeList() {
     incomeList.innerHTML = "";
 
-    if (incomes.length === 0) {
+    if (state.incomes.length === 0) {
         emptyIncomeState.style.display = "block";
         return;
     }
 
     emptyIncomeState.style.display = "none";
-
-    incomes.forEach((income, index) => {
-        const item = document.createElement("li");
-        item.className = "expense-item";
-
-        const content = document.createElement("div");
-        content.className = "expense-item-content";
-
-        const description = document.createElement("span");
-        description.className = "expense-category";
-        description.textContent = income.description;
-
-        const amount = document.createElement("span");
-        amount.className = "expense-amount";
-        amount.textContent = formatCurrency(income.amount);
-
-        const buttonGroup = document.createElement("div");
-        buttonGroup.className = "expense-actions";
-
-        const deleteButton = document.createElement("button");
-        deleteButton.type = "button";
-        deleteButton.className = "button button--danger expense-delete-button";
-        deleteButton.textContent = "Изтрий";
-        deleteButton.setAttribute("aria-label", `Изтрий приход ${income.description} ${formatCurrency(income.amount)}`);
-        deleteButton.addEventListener("click", () => {
-            removeIncome(index);
-        });
-
-        buttonGroup.appendChild(deleteButton);
-        content.appendChild(description);
-        content.appendChild(amount);
-        item.appendChild(content);
-        item.appendChild(buttonGroup);
-
-        incomeList.appendChild(item);
-    });
+    state.incomes.forEach((income, index) => incomeList.appendChild(createIncomeListItem(income, index)));
 }
 
 function removeIncome(index) {
-    incomes.splice(index, 1);
-    saveIncomes();
+    state.incomes.splice(index, 1);
+    saveIncomesToStorage();
     renderIncomeList();
-    updateIncomeTotals();
+    refreshIncomeSummary();
 }
 
-function computeIncomeSummary() {
-    const total = incomes.reduce((sum, income) => sum + income.amount, 0);
-    const count = incomes.length;
-
-    return { total, count };
-}
-
-function updateIncomeTotals() {
-    const { total, count } = computeIncomeSummary();
-    const expenseTotal = computeStoredExpensesTotal();
+function refreshIncomeSummary() {
+    const { total, count } = computeIncomeMetrics();
+    const expenseTotal = computeStoredItemTotal(STORAGE_KEY_EXPENSES);
     const balance = total - expenseTotal;
 
     totalIncomeAmountEl.textContent = formatCurrency(total);
@@ -159,30 +116,25 @@ function updateIncomeTotals() {
     totalIncomeCountEl.textContent = count.toString();
 }
 
-function addIncome(description, amount) {
-    const validationMessage = validateIncome(description, amount);
-
+function addIncomeEntry(description, amountValue) {
+    const validationMessage = validateIncomeEntry(description, amountValue);
     if (validationMessage) {
-        showIncomeError(validationMessage);
+        setIncomeError(validationMessage);
         return false;
     }
 
     clearIncomeError();
-
-    const normalizedDescription = description.trim();
-    const normalizedAmount = Number(amount);
-
-    incomes.push({ description: normalizedDescription, amount: normalizedAmount });
-    saveIncomes();
+    state.incomes.push({ description: description.trim(), amount: parseAmount(amountValue) });
+    saveIncomesToStorage();
     renderIncomeList();
-    updateIncomeTotals();
+    refreshIncomeSummary();
     return true;
 }
 
-incomeForm.addEventListener("submit", function (event) {
+function handleIncomeFormSubmit(event) {
     event.preventDefault();
 
-    const added = addIncome(incomeDescriptionInput.value, incomeAmountInput.value);
+    const added = addIncomeEntry(incomeDescriptionInput.value, incomeAmountInput.value);
     if (!added) {
         return;
     }
@@ -190,8 +142,10 @@ incomeForm.addEventListener("submit", function (event) {
     incomeDescriptionInput.value = "";
     incomeAmountInput.value = "";
     incomeDescriptionInput.focus();
-});
+}
 
-incomes = loadIncomes();
+incomeForm.addEventListener("submit", handleIncomeFormSubmit);
+
+loadIncomesFromStorage();
 renderIncomeList();
-updateIncomeTotals();
+refreshIncomeSummary();

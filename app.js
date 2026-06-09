@@ -1,3 +1,6 @@
+const STORAGE_KEY_EXPENSES = "financeTrackerExpenses";
+const STORAGE_KEY_INCOMES = "financeTrackerIncomes";
+
 const expenseForm = document.getElementById("expenseForm");
 const categoryInput = document.getElementById("categoryInput");
 const amountInput = document.getElementById("amountInput");
@@ -16,63 +19,29 @@ const clearAllButton = document.getElementById("clearAllButton");
 const formError = document.getElementById("formError");
 const submitButton = expenseForm.querySelector("button[type='submit']");
 
-let expenses = [];
-let editingIndex = -1;
+const state = {
+    expenses: [],
+    editingIndex: -1,
+};
 
-function loadExpenses() {
-    const rawExpenses = localStorage.getItem("financeTrackerExpenses");
-    if (!rawExpenses) {
-        return [];
-    }
-
-    try {
-        return JSON.parse(rawExpenses);
-    } catch {
-        return [];
-    }
+function loadExpensesFromStorage() {
+    state.expenses = loadJsonStorage(STORAGE_KEY_EXPENSES);
 }
 
-function saveExpenses() {
-    localStorage.setItem("financeTrackerExpenses", JSON.stringify(expenses));
+function saveExpensesToStorage() {
+    saveJsonStorage(STORAGE_KEY_EXPENSES, state.expenses);
 }
 
-function getStoredIncomes() {
-    const rawIncomes = localStorage.getItem("financeTrackerIncomes");
-    if (!rawIncomes) {
-        return [];
-    }
-
-    try {
-        return JSON.parse(rawIncomes);
-    } catch {
-        return [];
-    }
-}
-
-function computeStoredIncomeTotal() {
-    const incomes = getStoredIncomes();
-    return incomes.reduce((sum, income) => sum + Number(income.amount || 0), 0);
-}
-
-function formatCurrency(value) {
-    return value.toFixed(2) + " лв";
-}
-
-function computeSummary() {
-    const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const count = expenses.length;
+function computeExpenseMetrics() {
+    const total = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const count = state.expenses.length;
     const average = count === 0 ? 0 : total / count;
-    const highest = count === 0 ? 0 : Math.max(...expenses.map(expense => expense.amount));
+    const highest = count === 0 ? 0 : Math.max(...state.expenses.map(expense => expense.amount));
 
-    return {
-        total,
-        count,
-        average,
-        highest,
-    };
+    return { total, count, average, highest };
 }
 
-function showError(message) {
+function setError(message) {
     if (!formError) return;
     formError.textContent = message;
     formError.style.display = "block";
@@ -84,138 +53,127 @@ function clearError() {
     formError.style.display = "none";
 }
 
-function validateExpense(category, amount) {
-    const normalizedCategory = category.trim();
-    const amountText = amount.trim();
-
-    if (normalizedCategory === "") {
+function validateExpenseEntry(category, amountValue) {
+    const categoryValue = category.trim();
+    if (categoryValue === "") {
         return "Моля въведете име или категория на разхода.";
     }
 
-    if (amountText === "") {
-        return "Моля въведете сума.";
-    }
-
-    const normalizedAmount = Number(amountText);
-
-    if (Number.isNaN(normalizedAmount)) {
+    const parsedAmount = parseAmount(amountValue);
+    if (parsedAmount === null) {
         return "Моля въведете валидно число за сумата.";
     }
 
-    if (normalizedAmount <= 0) {
+    if (parsedAmount <= 0) {
         return "Сумата трябва да бъде по-голяма от 0.";
     }
 
     return "";
 }
 
+function createExpenseListItem(expense, index) {
+    const item = document.createElement("li");
+    item.className = "expense-item";
+
+    const content = document.createElement("div");
+    content.className = "expense-item-content";
+    content.append(
+        createTextElement("span", "expense-category", expense.category),
+        createTextElement("span", "expense-amount", formatCurrency(expense.amount))
+    );
+
+    const buttonGroup = document.createElement("div");
+    buttonGroup.className = "expense-actions";
+
+    const editButton = createActionButton(
+        "Редактирай",
+        "button--secondary expense-edit-button",
+        `Редактирай разход ${expense.category} ${formatCurrency(expense.amount)}`,
+        () => setExpenseEditMode(index)
+    );
+
+    const deleteButton = createActionButton(
+        "Изтрий",
+        "button--danger expense-delete-button",
+        `Изтрий разход ${expense.category} ${formatCurrency(expense.amount)}`,
+        () => removeExpense(index)
+    );
+
+    buttonGroup.append(editButton, deleteButton);
+    item.append(content, buttonGroup);
+    return item;
+}
+
 function renderExpenseList() {
     expenseList.innerHTML = "";
 
-    if (expenses.length === 0) {
+    if (state.expenses.length === 0) {
         emptyState.style.display = "block";
         return;
     }
 
     emptyState.style.display = "none";
 
-    expenses.forEach((expense, index) => {
-        const item = document.createElement("li");
-        item.className = "expense-item";
-
-        const content = document.createElement("div");
-        content.className = "expense-item-content";
-
-        const category = document.createElement("span");
-        category.className = "expense-category";
-        category.textContent = expense.category;
-
-        const amount = document.createElement("span");
-        amount.className = "expense-amount";
-        amount.textContent = formatCurrency(expense.amount);
-
-        const editButton = document.createElement("button");
-        editButton.type = "button";
-        editButton.className = "button button--secondary expense-edit-button";
-        editButton.textContent = "Редактирай";
-        editButton.setAttribute("aria-label", `Редактирай разход ${expense.category} ${formatCurrency(expense.amount)}`);
-        editButton.addEventListener("click", () => {
-            setFormToEdit(index);
-        });
-
-        const buttonGroup = document.createElement("div");
-        buttonGroup.className = "expense-actions";
-
-        const deleteButton = document.createElement("button");
-        deleteButton.type = "button";
-        deleteButton.className = "button button--danger expense-delete-button";
-        deleteButton.textContent = "Изтрий";
-        deleteButton.setAttribute("aria-label", `Изтрий разход ${expense.category} ${formatCurrency(expense.amount)}`);
-        deleteButton.addEventListener("click", () => {
-            removeExpense(index);
-        });
-
-        buttonGroup.appendChild(editButton);
-        buttonGroup.appendChild(deleteButton);
-
-        content.appendChild(category);
-        content.appendChild(amount);
-        item.appendChild(content);
-        item.appendChild(buttonGroup);
-
-        expenseList.appendChild(item);
+    state.expenses.forEach((expense, index) => {
+        expenseList.appendChild(createExpenseListItem(expense, index));
     });
 }
 
-function setFormToEdit(index) {
-    const expense = expenses[index];
+function setExpenseEditMode(index) {
+    const expense = state.expenses[index];
     categoryInput.value = expense.category;
     amountInput.value = expense.amount;
-    editingIndex = index;
+    state.editingIndex = index;
     submitButton.textContent = "💾 Запази";
     categoryInput.focus();
 }
 
-function resetEditState() {
-    editingIndex = -1;
-    submitButton.textContent = "➕ Добавить разход";
+function resetExpenseFormState() {
+    state.editingIndex = -1;
+    submitButton.textContent = "➕ Добави разход";
 }
 
 function removeExpense(index) {
-    expenses.splice(index, 1);
-    saveExpenses();
+    state.expenses.splice(index, 1);
+    saveExpensesToStorage();
     renderExpenseList();
-    updateTotals();
+    refreshExpenseSummary();
 }
 
-function updateExpense(index, category, amount) {
-    const validationMessage = validateExpense(category, amount);
-
+function addExpenseEntry(category, amountValue) {
+    const validationMessage = validateExpenseEntry(category, amountValue);
     if (validationMessage) {
-        showError(validationMessage);
+        setError(validationMessage);
         return false;
     }
 
     clearError();
-
-    const normalizedCategory = category.trim();
-    const normalizedAmount = Number(amount);
-
-    expenses[index] = {
-        category: normalizedCategory,
-        amount: normalizedAmount,
-    };
-
+    state.expenses.push({ category: category.trim(), amount: parseAmount(amountValue) });
+    saveExpensesToStorage();
     renderExpenseList();
-    updateTotals();
-    resetEditState();
-
+    refreshExpenseSummary();
     return true;
 }
 
-function updateTotals() {
-    const { total, count, average, highest } = computeSummary();
-    const incomeTotal = computeStoredIncomeTotal();
+function updateExpenseEntry(index, category, amountValue) {
+    const validationMessage = validateExpenseEntry(category, amountValue);
+    if (validationMessage) {
+        setError(validationMessage);
+        return false;
+    }
+
+    clearError();
+    state.expenses[index] = { category: category.trim(), amount: parseAmount(amountValue) };
+    saveExpensesToStorage();
+    renderExpenseList();
+    refreshExpenseSummary();
+    resetExpenseFormState();
+    return true;
+}
+
+function refreshExpenseSummary() {
+    const { total, count, average, highest } = computeExpenseMetrics();
+    const incomeTotal = computeStoredItemTotal(STORAGE_KEY_INCOMES);
     const balance = incomeTotal - total;
 
     totalAmountEl.textContent = formatCurrency(total);
@@ -230,43 +188,23 @@ function updateTotals() {
     statisticsHighest.textContent = formatCurrency(highest);
 }
 
-function addExpense(category, amount) {
-    const validationMessage = validateExpense(category, amount);
-
-    if (validationMessage) {
-        showError(validationMessage);
-        return false;
-    }
-
-    clearError();
-
-    const normalizedCategory = category.trim();
-    const normalizedAmount = Number(amount);
-
-    expenses.push({ category: normalizedCategory, amount: normalizedAmount });
-    saveExpenses();
-    renderExpenseList();
-    updateTotals();
-    return true;
-}
-
 function clearAllExpenses() {
-    expenses = [];
-    saveExpenses();
+    state.expenses = [];
+    saveExpensesToStorage();
     renderExpenseList();
-    updateTotals();
+    refreshExpenseSummary();
 }
 
-expenseForm.addEventListener("submit", function (event) {
+function handleExpenseFormSubmit(event) {
     event.preventDefault();
 
-    let success;
+    const categoryValue = categoryInput.value;
+    const amountValue = amountInput.value;
+    const isUpdate = state.editingIndex !== -1;
 
-    if (editingIndex !== -1) {
-        success = updateExpense(editingIndex, categoryInput.value, amountInput.value);
-    } else {
-        success = addExpense(categoryInput.value, amountInput.value);
-    }
+    const success = isUpdate
+        ? updateExpenseEntry(state.editingIndex, categoryValue, amountValue)
+        : addExpenseEntry(categoryValue, amountValue);
 
     if (!success) {
         return;
@@ -274,14 +212,13 @@ expenseForm.addEventListener("submit", function (event) {
 
     categoryInput.value = "";
     amountInput.value = "";
-    resetEditState();
+    resetExpenseFormState();
     categoryInput.focus();
-});
+}
 
-clearAllButton.addEventListener("click", function () {
-    clearAllExpenses();
-});
+expenseForm.addEventListener("submit", handleExpenseFormSubmit);
+clearAllButton.addEventListener("click", clearAllExpenses);
 
-expenses = loadExpenses();
+loadExpensesFromStorage();
 renderExpenseList();
-updateTotals();
+refreshExpenseSummary();
