@@ -105,6 +105,9 @@ function renderExpenseList() {
             setFormToEdit(index);
         });
 
+        const buttonGroup = document.createElement("div");
+        buttonGroup.className = "expense-actions";
+
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className = "button button--danger expense-delete-button";
@@ -114,11 +117,13 @@ function renderExpenseList() {
             removeExpense(index);
         });
 
+        buttonGroup.appendChild(editButton);
+        buttonGroup.appendChild(deleteButton);
+
         content.appendChild(category);
         content.appendChild(amount);
         item.appendChild(content);
-        item.appendChild(editButton);
-        item.appendChild(deleteButton);
+        item.appendChild(buttonGroup);
 
         expenseList.appendChild(item);
     });
